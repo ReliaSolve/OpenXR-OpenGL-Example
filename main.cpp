@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <string>
 #include <iostream>
+#include <array>
 
 #include "pch.h"
-XrGraphicsBindingOpenGLXlibKHR foo;
 #include "common.h"
 #include "gfxwrapper_opengl.h"
 #include "xr_linear.h"
@@ -188,8 +188,8 @@ static void OpenGLInitializeDevice(XrInstance instance, XrSystemId systemId)
         THROW("Runtime does not support desired Graphics API and/or version");
     }
 #ifdef XR_USE_PLATFORM_WIN32
-    g_graphicsBinding.hDC = window.context.hDC;
-    g_graphicsBinding.hGLRC = window.context.hGLRC;
+    g_graphicsBinding.hDC = g_window.context.hDC;
+    g_graphicsBinding.hGLRC = g_window.context.hGLRC;
 #elif defined(XR_USE_PLATFORM_XLIB)
     g_graphicsBinding.xDisplay = g_window.context.xDisplay;
     g_graphicsBinding.visualid = g_window.context.visualid;
@@ -1216,7 +1216,7 @@ static void OpenXRTearDown()
     }
 
 #ifdef XR_USE_PLATFORM_WIN32
-    CHECK_HRCMD(CoInInitialize());
+    CoUninitialize();
 #endif
 }
 
