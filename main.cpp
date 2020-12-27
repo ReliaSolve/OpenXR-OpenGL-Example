@@ -24,6 +24,32 @@ static void Usage(std::string name)
     std::cout << "       --verbosity: Set V to 0 for silence, higher for more info (default " << g_verbosity << ")" << std::endl;
 }
 
+namespace Math {
+namespace Pose {
+XrPosef Identity() {
+    XrPosef t{};
+    t.orientation.w = 1;
+    return t;
+}
+
+XrPosef Translation(const XrVector3f& translation) {
+    XrPosef t = Identity();
+    t.position = translation;
+    return t;
+}
+
+XrPosef RotateCCWAboutYAxis(float radians, XrVector3f translation) {
+    XrPosef t = Identity();
+    t.orientation.x = 0.f;
+    t.orientation.y = std::sin(radians * 0.5f);
+    t.orientation.z = 0.f;
+    t.orientation.w = std::cos(radians * 0.5f);
+    t.position = translation;
+    return t;
+}
+}  // namespace Pose
+}  // namespace Math
+
 //============================================================================================
 // OpenGL state and functions.
 
@@ -309,7 +335,9 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
 
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
-    glEnable(GL_CULL_FACE);
+    // Disable back-face culling so we can see the inside of the world-space cube
+    glDisable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
     const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
@@ -339,13 +367,16 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
     // Set cube primitive data.
     glBindVertexArray(g_vao);
 
-    // Things drawn here should appear in world space at the scale specified above (if scale = 1 then
-    // unit scale).
+    // Things drawn here will appear in world space at the scale specified above (if scale = 1 then
+    // unit scale).  The Model transform and scale will adjust where and how large they are.
+    // Here, we draw a cube that is 10 meters large located at the origin.
     /// @todo Replace with the things you'd like to be drawn in the world.
     {
+        XrPosef id = Math::Pose::Identity();
+        XrVector3f worldCubeScale{10.f, 10.f, 10.f};
         // Compute the model-view-projection transform and set it..
         XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &pose.position, &pose.orientation, &scale);
+        XrMatrix4x4f_CreateTranslationRotationScale(&model, &id.position, &id.orientation, &worldCubeScale);
         XrMatrix4x4f mvp;
         XrMatrix4x4f_Multiply(&mvp, &vp, &model);
         glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
@@ -482,32 +513,6 @@ static void OpenXRCreateInstance()
 
     CHECK_XRCMD(xrCreateInstance(&createInfo, &g_instance));
 }
-
-namespace Math {
-namespace Pose {
-XrPosef Identity() {
-    XrPosef t{};
-    t.orientation.w = 1;
-    return t;
-}
-
-XrPosef Translation(const XrVector3f& translation) {
-    XrPosef t = Identity();
-    t.position = translation;
-    return t;
-}
-
-XrPosef RotateCCWAboutYAxis(float radians, XrVector3f translation) {
-    XrPosef t = Identity();
-    t.orientation.x = 0.f;
-    t.orientation.y = std::sin(radians * 0.5f);
-    t.orientation.z = 0.f;
-    t.orientation.w = std::cos(radians * 0.5f);
-    t.position = translation;
-    return t;
-}
-}  // namespace Pose
-}  // namespace Math
 
 static XrReferenceSpaceCreateInfo GetXrReferenceSpaceCreateInfo(const std::string& referenceSpaceTypeStr) {
     XrReferenceSpaceCreateInfo referenceSpaceCreateInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
