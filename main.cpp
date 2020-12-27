@@ -26,10 +26,11 @@ static void Usage(std::string name)
 
 //============================================================================================
 // OpenGL state and functions.
-/// @todo Modify this to change the program behavior.
 
-/// @todo Remove when we're no longer doing bag-o-cubes space rendering
-struct Cube {
+// Description of one of the spaces we want to render in, along with a scale factor to
+// be applied in that space.  In the original example, this is used to position, orient,
+// and scale cubes to various spaces including hand space.
+struct Space {
     XrPosef Pose;
     XrVector3f Scale;
 };
@@ -292,7 +293,7 @@ static uint32_t OpenGLGetDepthTexture(uint32_t colorTexture)
 }
 
 static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, const XrSwapchainImageBaseHeader* swapchainImage,
-                int64_t swapchainFormat, const std::vector<Cube>& cubes)
+                int64_t swapchainFormat, const std::vector<Space>& spaces)
 {
     CHECK(layerView.subImage.imageArrayIndex == 0);  // Texture arrays not supported.
     UNUSED_PARM(swapchainFormat);                    // Not used in this function for now.
@@ -338,11 +339,27 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
     // Set cube primitive data.
     glBindVertexArray(g_vao);
 
-    // Render each cube
-    for (const Cube& cube : cubes) {
+    // Things drawn here should appear in world space at the scale specified above (if scale = 1 then
+    // unit scale).
+    /// @todo Replace with the things you'd like to be drawn in the world.
+    {
         // Compute the model-view-projection transform and set it..
         XrMatrix4x4f model;
-        XrMatrix4x4f_CreateTranslationRotationScale(&model, &cube.Pose.position, &cube.Pose.orientation, &cube.Scale);
+        XrMatrix4x4f_CreateTranslationRotationScale(&model, &pose.position, &pose.orientation, &scale);
+        XrMatrix4x4f mvp;
+        XrMatrix4x4f_Multiply(&mvp, &vp, &model);
+        glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
+
+        // Draw the cube.
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(ArraySize(Geometry::c_cubeIndices)), GL_UNSIGNED_SHORT, nullptr);
+    }
+
+    // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
+    // the centers of each of the spaces we defined.
+    for (const Space& space : spaces) {
+        // Compute the model-view-projection transform and set it..
+        XrMatrix4x4f model;
+        XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
         XrMatrix4x4f mvp;
         XrMatrix4x4f_Multiply(&mvp, &vp, &model);
         glUniformMatrix4fv(g_modelViewProjectionUniformLocation, 1, GL_FALSE, reinterpret_cast<const GLfloat*>(&mvp));
@@ -391,7 +408,6 @@ static void OpenGLTearDown()
 
 //============================================================================================
 // OpenXR state and functions.
-/// @todo The spaces to be rendered will probably change between programs.
 
 #if !defined(XR_USE_PLATFORM_WIN32)
 #define strcpy_s(dest, source) strncpy((dest), (source), sizeof(dest))
@@ -750,12 +766,13 @@ void OpenXRInitializeActions() {
     CHECK_XRCMD(xrAttachSessionActionSets(g_session, &attachInfo));
 }
 
-/// @todo Change this to modify the spaces that have things drawn in them.
 
 void OpenXRCreateVisualizedSpaces() {
     CHECK(g_session != XR_NULL_HANDLE);
 
-    std::string visualizedSpaces[] = {"ViewFront",        "Local", "Stage", "StageLeft", "StageRight", "StageLeftRotated",
+    /// @todo Change this to modify the spaces that have things drawn in them.  They can all be removed
+    /// if you draw things in world space.  Removing these will not remove the cubes drawn for the hands.
+    std::string visualizedSpaces[] = {"ViewFront", "Local", "Stage", "StageLeft", "StageRight", "StageLeftRotated",
                                       "StageRightRotated"};
 
     for (const auto& visualizedSpace : visualizedSpaces) {
@@ -1082,9 +1099,8 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
 
     projectionLayerViews.resize(viewCountOutput);
 
-    /// @todo Change this behavior to do per-space callbacks rather than bag-o-cubes
     // For each locatable space that we want to visualize, render a 25cm cube.
-    std::vector<Cube> cubes;
+    std::vector<Space> spaces;
 
     for (XrSpace visualizedSpace : g_visualizedSpaces) {
         XrSpaceLocation spaceLocation{XR_TYPE_SPACE_LOCATION};
@@ -1093,7 +1109,7 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
         if (XR_UNQUALIFIED_SUCCESS(res)) {
             if ((spaceLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
                 (spaceLocation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0) {
-                cubes.push_back(Cube{spaceLocation.pose, {0.25f, 0.25f, 0.25f}});;
+                spaces.push_back(Space{spaceLocation.pose, {0.25f, 0.25f, 0.25f}});;
             }
         } else {
             if (g_verbosity >= 2) std::cout << Fmt("Unable to locate a visualized reference space in app space: %d", res) << std::endl;
@@ -1102,6 +1118,7 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
 
     // Render a 10cm cube scaled by grabAction for each hand. Note renderHand will only be
     // true when the application has focus.
+    /// @todo Remove these if you do not want to draw things in hand space.
     for (auto hand : {Side::LEFT, Side::RIGHT}) {
         XrSpaceLocation spaceLocation{XR_TYPE_SPACE_LOCATION};
         res = xrLocateSpace(g_input.handSpace[hand], g_appSpace, predictedDisplayTime, &spaceLocation);
@@ -1110,7 +1127,7 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
             if ((spaceLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
                 (spaceLocation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0) {
                 float scale = 0.1f * g_input.handScale[hand];
-                cubes.push_back(Cube{spaceLocation.pose, {scale, scale, scale}});
+                spaces.push_back(Space{spaceLocation.pose, {scale, scale, scale}});
             }
         } else {
             // Tracking loss is expected when the hand is not active so only log a message
@@ -1146,7 +1163,7 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
         projectionLayerViews[i].subImage.imageRect.extent = {viewSwapchain.width, viewSwapchain.height};
 
         const XrSwapchainImageBaseHeader* const swapchainImage = g_swapchainImages[viewSwapchain.handle][swapchainImageIndex];
-        OpenGLRenderView(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, cubes);
+        OpenGLRenderView(projectionLayerViews[i], swapchainImage, g_colorSwapchainFormat, spaces);
 
         XrSwapchainImageReleaseInfo releaseInfo{XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
         CHECK_XRCMD(xrReleaseSwapchainImage(viewSwapchain.handle, &releaseInfo));

@@ -29,8 +29,3 @@ to g_ objects.
 to find and link against OpenGL on various platforms.
 - sdk-files: Additional helper header files brought over from the OpenXR-SDK-Source
 repository.
-
-TODO: Generalize the cube-in-space rendering metaphor so that the rendering code
-knows what space it is drawing to and renders the appropriate shapes there, rather
-than cubes everywhere.
-
