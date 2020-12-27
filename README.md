@@ -18,7 +18,8 @@ OpenXR loader to have been installed for to compile and it requires an OpenXR ru
 that supports OpenGL to be running at runtime.
 
 As of 12/27/2020 it was compiling and running on Ubuntu 20.04 against the Monado runtime,
-with the display in a stereo view on a window.
+with the display in a stereo view on a window.  It also compiles and runs on Windows, but
+I don't have an OpenXR runtime that supports OpenGL to test it on.
 
 Files:
 - main.cpp: The bulk of the application.  The OpenXR and OpenGL classes from the OpenXR-SDK-Source
