@@ -13,7 +13,9 @@ find_package(Threads REQUIRED)
 # Tell that we are using OpenGL.
 set(OpenGL_GL_PREFERENCE GLVND)
 find_package(OpenGL REQUIRED)
-find_package(JSONCPP REQUIRED)
+if(WIN32)
+  find_package(JSONCPP REQUIRED)
+endif()
 add_definitions(-DXR_USE_GRAPHICS_API_OPENGL)
 
 # @todo We would like to use the OpenXR::openxr_loader target and have it import its
@@ -73,14 +75,18 @@ set(OpenXROpenGLExample_SRC
 
 add_executable(OpenXROpenGLExample ${OpenXROpenGLExample_SRC})
 # @todo Remove this when we can link to OpenXR::openxr_loader and have it pull in JSONCPP
-# and its other libraries correctly.
+# and its other libraries correctly on Windows.
 if (WIN32)
-  target_link_libraries(OpenXROpenGLExample openxr_loader advapi32 pathcch)
+  target_link_libraries(OpenXROpenGLExample
+    openxr_loader
+    jsoncpp_lib
+    advapi32
+    pathcch
+  )
 else()
-  target_link_libraries(OpenXROpenGLExample OpenCR::openxr_loader)
+  target_link_libraries(OpenXROpenGLExample OpenXR::openxr_loader)
 endif()
 target_link_libraries(OpenXROpenGLExample 
-  jsoncpp_lib
   openxr-gfxwrapper
   OpenXR::openxr-all-supported
   ${CMAKE_THREAD_LIBS_INIT}
