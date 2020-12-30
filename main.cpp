@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <array>
+#include <map>
 
 #include "pch.h"
 #include "common.h"
@@ -23,6 +24,9 @@ static void Usage(std::string name)
     std::cout << "Usage: " << name << " [--verbosity V]" << std::endl;
     std::cout << "       --verbosity: Set V to 0 for silence, higher for more info (default " << g_verbosity << ")" << std::endl;
 }
+
+//============================================================================================
+// Helper functions.
 
 namespace Math {
 namespace Pose {
@@ -51,15 +55,24 @@ XrPosef RotateCCWAboutYAxis(float radians, XrVector3f translation) {
 }  // namespace Math
 
 //============================================================================================
-// OpenGL state and functions.
+// Code to handle knowing which spaces things are rendered in.
+/// @todo If you only want to render in world space, all of the space-choosing machinery
+/// can be removed.  Note that the hands are spaces in addition to the application-defined ones.
+
+// Maps from the space back to its name so we can know what to render in each
+std::map<XrSpace, std::string> g_spaceNames;
 
 // Description of one of the spaces we want to render in, along with a scale factor to
 // be applied in that space.  In the original example, this is used to position, orient,
 // and scale cubes to various spaces including hand space.
 struct Space {
-    XrPosef Pose;
-    XrVector3f Scale;
+    XrPosef Pose;           ///< Pose of the space relative to g_appSpace
+    XrVector3f Scale;       ///< Scale hint for the space
+    std::string Name;       ///< An identifier so we can know what to render in each space
 };
+
+//============================================================================================
+// OpenGL state and functions.
 
 constexpr float DarkSlateGray[] = {0.184313729f, 0.309803933f, 0.309803933f, 1.0f};
 
@@ -387,7 +400,11 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
 
     // Render a cube within each of the spaces we've been asked to render, at the requested sizes.  These show
     // the centers of each of the spaces we defined.
+    /// @todo Use the name of each space to determine what to draw in it.
     for (const Space& space : spaces) {
+        if (g_verbosity >= 10) {
+            std::cout << " Rendering " << space.Name << " space" << std::endl;
+        }
         // Compute the model-view-projection transform and set it..
         XrMatrix4x4f model;
         XrMatrix4x4f_CreateTranslationRotationScale(&model, &space.Pose.position, &space.Pose.orientation, &space.Scale);
@@ -786,6 +803,7 @@ void OpenXRCreateVisualizedSpaces() {
         XrResult res = xrCreateReferenceSpace(g_session, &referenceSpaceCreateInfo, &space);
         if (XR_SUCCEEDED(res)) {
             g_visualizedSpaces.push_back(space);
+            g_spaceNames[space] = visualizedSpace;
         } else {
             if (g_verbosity >= 0) {
                 std::cerr << "Failed to create reference space " << visualizedSpace << " with error " << res
@@ -1114,7 +1132,7 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
         if (XR_UNQUALIFIED_SUCCESS(res)) {
             if ((spaceLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
                 (spaceLocation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0) {
-                spaces.push_back(Space{spaceLocation.pose, {0.25f, 0.25f, 0.25f}});;
+                spaces.push_back(Space{spaceLocation.pose, {0.25f, 0.25f, 0.25f},g_spaceNames[visualizedSpace]});;
             }
         } else {
             if (g_verbosity >= 2) std::cout << Fmt("Unable to locate a visualized reference space in app space: %d", res) << std::endl;
@@ -1124,6 +1142,7 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
     // Render a 10cm cube scaled by grabAction for each hand. Note renderHand will only be
     // true when the application has focus.
     /// @todo Remove these if you do not want to draw things in hand space.
+    const char* handName[] = { "left", "right" };
     for (auto hand : {Side::LEFT, Side::RIGHT}) {
         XrSpaceLocation spaceLocation{XR_TYPE_SPACE_LOCATION};
         res = xrLocateSpace(g_input.handSpace[hand], g_appSpace, predictedDisplayTime, &spaceLocation);
@@ -1132,13 +1151,13 @@ static bool OpenXRRenderLayer(XrTime predictedDisplayTime, std::vector<XrComposi
             if ((spaceLocation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
                 (spaceLocation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0) {
                 float scale = 0.1f * g_input.handScale[hand];
-                spaces.push_back(Space{spaceLocation.pose, {scale, scale, scale}});
+                std::string name = handName[hand]; name += "Hand";
+                spaces.push_back(Space{spaceLocation.pose, {scale, scale, scale},name});
             }
         } else {
             // Tracking loss is expected when the hand is not active so only log a message
             // if the hand is active.
             if (g_input.handActive[hand] == XR_TRUE) {
-                const char* handName[] = {"left", "right"};
                 if (g_verbosity >= 2) {
                     std::cout << Fmt("Unable to locate %s hand action space in app space: %d", handName[hand], res) << std::endl;
                 }
