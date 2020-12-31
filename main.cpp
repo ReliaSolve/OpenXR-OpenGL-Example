@@ -1229,6 +1229,8 @@ static void OpenXRRenderFrame()
 
 static void OpenXRTearDown()
 {
+    OpenGLTearDown();
+
     if (g_input.actionSet != XR_NULL_HANDLE) {
         for (auto hand : {Side::LEFT, Side::RIGHT}) {
             xrDestroySpace(g_input.handSpace[hand]);
@@ -1315,7 +1317,6 @@ int main(int argc, char* argv[])
                 }
             }
 
-            OpenGLTearDown();
             OpenXRTearDown();
 
         } while (!quitKeyPressed && requestRestart);
