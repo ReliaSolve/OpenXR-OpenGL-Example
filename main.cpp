@@ -1315,10 +1315,10 @@ int main(int argc, char* argv[])
                 }
             }
 
-        } while (!quitKeyPressed && requestRestart);
+            OpenGLTearDown();
+            OpenXRTearDown();
 
-        OpenGLTearDown();
-        OpenXRTearDown();
+        } while (!quitKeyPressed && requestRestart);
 
         return 0;
     } catch (const std::exception& ex) {
