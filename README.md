@@ -13,9 +13,10 @@ class hierarchies to generalize the application.  The goal is to make a base app
 from which to build other OpenGL applications that can run on HMDs on Windows, Linux,
 and Mac.
 
-The project should build using CMake on Windows, Mac, and Linux.  It requires the
-OpenXR loader to have been installed for to compile and it requires an OpenXR runtime
-that supports OpenGL to be running at runtime.
+The project should build using CMake on Windows, Mac, and Linux.  **It requires the
+OpenXR loader to have been installed for it to compile and it requires an OpenXR runtime
+that supports OpenGL to be running at runtime.**  On Windows, it finds my OpenXR directory
+in "C:/Program Files (x86)/OPENXR/cmake".
 
 As of 12/27/2020 it was compiling and running on Ubuntu 20.04 against the Monado runtime,
 with the display in a stereo view on a window.  It also compiles and runs on Windows, but
