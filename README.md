@@ -2,7 +2,7 @@
 
 <!--
 Copyright (c) 2017-2020 The Kronos Group Inc
-Copyright (c) 2020 ReliaSolve LLC
+Copyright (c) 2020-2021 ReliaSolve LLC
 -->
 
 This repository contains an OpenGL example program that links against the OpenXR loader.
@@ -14,9 +14,9 @@ from which to build other OpenGL applications that can run on HMDs on Windows, L
 and Mac.
 
 The project should build using CMake on Windows, Mac, and Linux.  **It requires the
-OpenXR loader to have been installed for it to compile and it requires an OpenXR runtime
-that supports OpenGL to be running at runtime.**  On Windows, it finds my OpenXR directory
-in "C:/Program Files (x86)/OPENXR/cmake".
+OpenXR SDK/loader to have been installed for it to compile and it requires an OpenXR runtime
+that supports OpenGL to be running at runtime.**  After installing the SDK on Windows,
+CMake finds my OpenXR configuration at "C:/Program Files (x86)/OPENXR/cmake".
 
 As of 12/27/2020 it was compiling and running on Ubuntu 20.04 against the Monado runtime,
 with the display in a stereo view on a window.  It also compiles and runs on Windows, but
