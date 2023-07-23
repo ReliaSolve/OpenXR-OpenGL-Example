@@ -88,6 +88,6 @@ else()
 endif()
 target_link_libraries(OpenXROpenGLExample 
   openxr-gfxwrapper
-  OpenXR::openxr-all-supported
+  #OpenXR::openxr-all-supported
   ${CMAKE_THREAD_LIBS_INIT}
 )
