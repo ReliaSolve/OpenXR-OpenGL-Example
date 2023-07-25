@@ -2,13 +2,13 @@
 
 <!--
 Copyright (c) 2017-2020 The Kronos Group Inc
-Copyright (c) 2020-2021 ReliaSolve LLC
+Copyright (c) 2020-2023 ReliaSolve LLC
 -->
 
 This repository contains an OpenGL example program that links against the OpenXR loader.
 
 It is a pared-down version of the hello-xr sample that comes with the OpenXR DSK Source
-repostiory at <https://github.com/KhronosGroup/OpenXR-SDK-Source/> that removes the
+repository at <https://github.com/KhronosGroup/OpenXR-SDK-Source/> that removes the
 class hierarchies to generalize the application.  The goal is to make a base application
 from which to build other OpenGL applications that can run on HMDs on Windows, Linux,
 and Mac.
@@ -18,9 +18,12 @@ OpenXR SDK/loader to have been installed for it to compile and it requires an Op
 that supports OpenGL to be running at runtime.**  After installing the SDK on Windows,
 CMake finds my OpenXR configuration at "C:/Program Files (x86)/OPENXR/cmake".
 
-As of 12/27/2020 it was compiling and running on Ubuntu 20.04 against the Monado runtime,
-with the display in a stereo view on a window.  It also compiles and runs on Windows, but
-I don't have an OpenXR runtime that supports OpenGL to test it on.
+As of 7/25/2023 it was compiling and running on Ubuntu 20.04 against the Monado runtime,
+with the display in a stereo view on a window.  It also compiles and runs on Windows, using
+the HTC Vive OpenXR runtime. **Note:** On systems that have both an integrated GPU and
+and nVidia GPU, you must use nVidia settings to prefer only the nVidia GPU, otherwise
+the rendering context does not get set correctly and the display may be incorrect or crash
+the compositor.
 
 Files:
 - main.cpp: The bulk of the application.  The OpenXR and OpenGL classes from the OpenXR-SDK-Source
