@@ -346,17 +346,17 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
                static_cast<GLsizei>(layerView.subImage.imageRect.extent.width),
                static_cast<GLsizei>(layerView.subImage.imageRect.extent.height));
 
+    const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+
     glFrontFace(GL_CW);
     glCullFace(GL_BACK);
     // Disable back-face culling so we can see the inside of the world-space cube
     glDisable(GL_CULL_FACE);
     //glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
-
-    const uint32_t depthTexture = OpenGLGetDepthTexture(colorTexture);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
 
     // Clear swapchain and depth buffer.
     glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
@@ -365,6 +365,9 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
 
     // Set shaders and uniform variables.
     glUseProgram(g_program);
+
+    // Set cube primitive data.
+    glBindVertexArray(g_vao);
 
     const auto& pose = layerView.pose;
     XrMatrix4x4f proj;
@@ -376,9 +379,6 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
     XrMatrix4x4f_InvertRigidBody(&view, &toView);
     XrMatrix4x4f vp;
     XrMatrix4x4f_Multiply(&vp, &proj, &view);
-
-    // Set cube primitive data.
-    glBindVertexArray(g_vao);
 
     // Things drawn here will appear in world space at the scale specified above (if scale = 1 then
     // unit scale).  The Model transform and scale will adjust where and how large they are.
@@ -1214,9 +1214,9 @@ static void OpenXRRenderFrame()
     XrCompositionLayerProjection layer{XR_TYPE_COMPOSITION_LAYER_PROJECTION};
     std::vector<XrCompositionLayerProjectionView> projectionLayerViews;
     if (frameState.shouldRender == XR_TRUE) {
-        if (OpenXRRenderLayer(frameState.predictedDisplayTime, projectionLayerViews, layer)) {
-            layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&layer));
-        }
+      if (OpenXRRenderLayer(frameState.predictedDisplayTime, projectionLayerViews, layer)) {
+        layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&layer));
+      }
     }
 
     XrFrameEndInfo frameEndInfo{XR_TYPE_FRAME_END_INFO};
@@ -1330,4 +1330,3 @@ int main(int argc, char* argv[])
         return 1;
     }
 }
-
