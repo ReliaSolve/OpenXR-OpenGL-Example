@@ -51,7 +51,6 @@ endif()
 # Several files use these compile-time OS switches
 if(WIN32)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-    add_definitions(-DXR_USE_PLATFORM_WIN32)
     add_definitions(-DXR_OS_WINDOWS)
     add_definitions(-DNOMINMAX)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
