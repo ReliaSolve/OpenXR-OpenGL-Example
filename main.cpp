@@ -421,6 +421,7 @@ static void OpenGLRenderView(const XrCompositionLayerProjectionView& layerView, 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Swap our window every other eye for RenderDoc
+    // (This is not needed unless we're rendering into that window, but we leave it here.)
     static int everyOther = 0;
     if ((everyOther++ & 1) != 0) {
         ksGpuWindow_SwapBuffers(&g_window);
